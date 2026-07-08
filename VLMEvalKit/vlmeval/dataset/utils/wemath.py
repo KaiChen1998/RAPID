@@ -5,8 +5,34 @@ import json
 import numpy as np
 import os
 import argparse
+import re
 
 # four_dimensional_metrics.py
+
+
+def extract_answer_option(prediction):
+    if pd.isna(prediction):
+        return None
+
+    text = str(prediction)
+    tail = text[-2000:]
+    patterns = [
+        r'\\boxed\s*\{\s*([A-H])\s*\}',
+        r'boxed\s*\{\s*([A-H])\s*\}',
+        r'<\s*([A-H])\s*>',
+        r'(?:final\s+answer|correct\s+answer|answer|option|choice)\s*(?:is|:)?\s*[<({\[]?\s*([A-H])\b',
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, tail, flags=re.IGNORECASE)
+        if matches:
+            return matches[-1].upper()
+
+    processed_answer = (
+        text.split('Answer')[-1].strip().replace('>', '').replace('<', '').replace(':', '').replace('.', '').strip()
+    )
+    if processed_answer and processed_answer[0].upper() in 'ABCDEFGH':
+        return processed_answer[0].upper()
+    return None
 
 
 # Function to evaluate steps
@@ -25,15 +51,7 @@ def evaluate_evaluate_steps(json, steps):  # noqa
 def load_and_process_data(filepath):
     df = pd.read_excel(filepath)
     if 'hit' not in df.columns:
-        df['processed_answer'] = (
-            df['prediction']
-            .str.split('Answer')
-            .str[-1]
-            .str.strip()
-            .str.replace(r'[>><<:.]', '', regex=True)
-            .str.strip()
-        )
-        df['processed_answer'] = df['processed_answer'].apply(lambda x: x[0] if x and x[0] in 'ABCDEFGH' else None)
+        df['processed_answer'] = df['prediction'].apply(extract_answer_option)
         df['joker'] = df['processed_answer'] == df['answer']
     else:
         df['joker'] = df['hit'].astype(bool)
@@ -190,7 +208,7 @@ def evaluate_update_main_results_df(main_results_df, total_counts, rates):
         'CompleteMastery (Loose)': f"{rates['CompleteMastery_loose_rate']} ({total_counts['CompleteMastery_loose']})",
         'RoteMemorization (Loose)': f"{rates['RoteMemorization_loose_rate']} ({total_counts['RoteMemorization_loose']})",
     }
-    main_results_df = main_results_df._append(new_row, ignore_index=True)
+    main_results_df = pd.concat([main_results_df, pd.DataFrame([new_row])], ignore_index=True)
     return main_results_df
 
 
@@ -298,7 +316,7 @@ def accuracy_update_main_results_df(nodes, main_results_df, concatenated_data, m
     csv_final_score = pd.merge(nodes, csv_final_score, left_on='final_rode', right_on='final_key', how='left')
 
     new_row.update(csv_final_score.groupby('root2')['joker'].mean().apply(lambda x: "{:.2%}".format(x)).to_dict())
-    main_results_df = main_results_df._append(new_row, ignore_index=True)
+    main_results_df = pd.concat([main_results_df, pd.DataFrame([new_row])], ignore_index=True)
 
     return main_results_df
 

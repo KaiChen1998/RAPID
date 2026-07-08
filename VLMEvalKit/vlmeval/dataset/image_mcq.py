@@ -1000,6 +1000,13 @@ class WeMath(ImageBaseDataset):
                 # 更改列名
                 data.rename(columns={'id': 'ID'}, inplace=True)
             dump(data, storage)
+        elif not osp.exists(storage):
+            data = load(eval_file)
+            data = data.sort_values(by='index')
+            data['prediction'] = [str(x) for x in data['prediction']]
+            if 'id' in data.columns:
+                data.rename(columns={'id': 'ID'}, inplace=True)
+            dump(data, storage)
         if osp.exists(storage):
             accuracy_scores = wemath_evaluate_models(storage)
             four_dim_scores = wemath_accuracy(storage)
