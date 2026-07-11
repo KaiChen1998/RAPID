@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
+########################
+# # Install dependency
+# cd ../VLMEvalKit
+# pip install -e .
+########################
 
-VLMEVAL_OUTPUTS_DIR="${VLMEVAL_OUTPUTS_DIR:-/data/kchenbf/verl_runs/vlmeval_outputs}"
-export LMUData="${LMUData:-/data/kchenbf/data/LMUData}"
+export LMUData="${LMUData:-/data/bucket-pangu-green/chenkai/data/LMUData}"
+DATA_LIST="${DATA_LIST:-MMMU_DEV_VAL}"
 MODEL_PATH="${MODEL_PATH:-/data/kchenbf/models/Qwen3-VL-2B-Instruct}"
-MODEL_NAME="${MODEL_NAME:-$(basename "${MODEL_PATH}")}"
-DATA_LIST="${DATA_LIST:-MMMU_DEV_VAL WeMath}"
+TENSOR_PARALLEL_SIZE="${TENSOR_PARALLEL_SIZE:-2}"
 QA_FUNC_TYPE="${QA_FUNC_TYPE:-qa_cot_step}"
-MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-4096}"
-TENSOR_PARALLEL_SIZE="${TENSOR_PARALLEL_SIZE:-4}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-8192}"
 API_NPROC="${API_NPROC:-4}"
 
-WORK_DIR="${VLMEVAL_OUTPUTS_DIR}/${MODEL_NAME}"
+WORK_DIR="${MODEL_PATH}/vlmeval_outputs"
 mkdir -p "${WORK_DIR}"
-mkdir -p "${LMUData}"
 
 python run.py \
   --data ${DATA_LIST} \
